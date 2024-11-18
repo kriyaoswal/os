@@ -1,0 +1,76 @@
+import java.util.*;
+
+public class RoundRobin {
+
+    // Method to calculate waiting time using Round Robin
+    static void findWaitingTime(int[] processes, int n, int[] bt, int[] wt, int quantum) {
+        int[] remBt = new int[n];
+        System.arraycopy(bt, 0, remBt, 0, n);  // Copy burst times to remaining burst times
+
+        int t = 0;
+        while (true) {
+            boolean done = true;
+
+            for (int i = 0; i < n; i++) {
+                if (remBt[i] > 0) {
+                    done = false;
+
+                    if (remBt[i] > quantum) {
+                        t += quantum;
+                        remBt[i] -= quantum;
+                    } else {
+                        t += remBt[i];
+                        wt[i] = t - bt[i];
+                        remBt[i] = 0;
+                    }
+                }
+            }
+
+            if (done) break; // Exit when all processes are finished
+        }
+    }
+
+    // Method to calculate turnaround time
+    static void findTurnAroundTime(int[] processes, int n, int[] bt, int[] wt, int[] tat) {
+        for (int i = 0; i < n; i++) {
+            tat[i] = bt[i] + wt[i];
+        }
+    }
+
+    // Method to calculate average times
+    static void findAvgTime(int[] processes, int n, int[] bt, int quantum) {
+        int[] wt = new int[n];
+        int[] tat = new int[n];
+        int totalWt = 0, totalTat = 0;
+
+        findWaitingTime(processes, n, bt, wt, quantum);
+        findTurnAroundTime(processes, n, bt, wt, tat);
+
+        System.out.println("Processes  Burst time  Waiting time  Turn around time");
+
+        for (int i = 0; i < n; i++) {
+            totalWt += wt[i];
+            totalTat += tat[i];
+            System.out.println(" " + (i + 1) + "\t\t" + bt[i] + "\t\t" + wt[i] + "\t\t" + tat[i]);
+        }
+
+        // Calculate and print average waiting time and turnaround time
+        System.out.println("Average waiting time = " + (float) totalWt / n);
+        System.out.println("Average turn around time = " + (float) totalTat / n);
+    }
+
+    public static void main(String[] args) {
+        // Process IDs
+        int[] processes = {1, 2, 3};
+        int n = processes.length;
+
+        // Burst times for processes
+        int[] burstTime = {10, 5, 8};
+
+        // Time quantum for Round Robin scheduling
+        int quantum = 2;
+
+        // Calculate and print the average times
+        findAvgTime(processes, n, burstTime, quantum);
+    }
+}
