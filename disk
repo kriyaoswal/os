@@ -1,0 +1,126 @@
+import java.util.*;
+
+public class DiskScheduling {
+
+    // SSTF (Shortest Seek Time First)
+    public static int sstf(int[] requests, int head) {
+        int totalSeekOperations = 0;
+        boolean[] visited = new boolean[requests.length];
+
+        for (int i = 0; i < requests.length; i++) {
+            int closestRequest = -1;
+            int minDistance = Integer.MAX_VALUE;
+
+            for (int j = 0; j < requests.length; j++) {
+                if (!visited[j] && Math.abs(head - requests[j]) < minDistance) {
+                    minDistance = Math.abs(head - requests[j]);
+                    closestRequest = j;
+                }
+            }
+
+            visited[closestRequest] = true;
+            totalSeekOperations += Math.abs(head - requests[closestRequest]);
+            head = requests[closestRequest];
+        }
+
+        return totalSeekOperations;
+    }
+
+    // SCAN (Elevator Algorithm)
+    public static int scan(int[] requests, int head, int diskSize) {
+        Arrays.sort(requests);
+        int totalSeekOperations = 0;
+
+        List<Integer> left = new ArrayList<>();
+        List<Integer> right = new ArrayList<>();
+
+        for (int request : requests) {
+            if (request < head) {
+                left.add(request);
+            } else {
+                right.add(request);
+            }
+        }
+
+        // Move towards the end of the disk, then back
+        for (int i = 0; i < right.size(); i++) {
+            totalSeekOperations += Math.abs(head - right.get(i));
+            head = right.get(i);
+        }
+
+        // Move to the end of the disk
+        totalSeekOperations += Math.abs(head - diskSize);
+        head = diskSize;
+
+        for (int i = left.size() - 1; i >= 0; i--) {
+            totalSeekOperations += Math.abs(head - left.get(i));
+            head = left.get(i);
+        }
+
+        return totalSeekOperations;
+    }
+
+    // C-LOOK (Circular Look)
+    public static int cLook(int[] requests, int head) {
+        Arrays.sort(requests);
+        int totalSeekOperations = 0;
+
+        List<Integer> left = new ArrayList<>();
+        List<Integer> right = new ArrayList<>();
+
+        for (int request : requests) {
+            if (request < head) {
+                left.add(request);
+            } else {
+                right.add(request);
+            }
+        }
+
+        // Serve right requests
+        for (int i = 0; i < right.size(); i++) {
+            totalSeekOperations += Math.abs(head - right.get(i));
+            head = right.get(i);
+        }
+
+        // Jump to the start of the queue
+        if (!left.isEmpty()) {
+            totalSeekOperations += Math.abs(head - left.get(left.size() - 1));
+            head = left.get(left.size() - 1);
+        }
+
+        // Serve left requests
+        for (int i = left.size() - 1; i >= 0; i--) {
+            totalSeekOperations += Math.abs(head - left.get(i));
+            head = left.get(i);
+        }
+
+        return totalSeekOperations;
+    }
+
+    // Main function
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.println("Enter the number of disk requests:");
+        int n = scanner.nextInt();
+
+        int[] requests = new int[n];
+        System.out.println("Enter the disk requests:");
+        for (int i = 0; i < n; i++) {
+            requests[i] = scanner.nextInt();
+        }
+
+        System.out.println("Enter the initial head position:");
+        int head = scanner.nextInt();
+
+        System.out.println("Enter the disk size:");
+        int diskSize = scanner.nextInt();
+
+        // Running each algorithm
+        System.out.println("Total seek operations using SSTF: " + sstf(requests, head));
+        System.out.println("Total seek operations using SCAN: " + scan(requests, head, diskSize));
+        System.out.println("Total seek operations using C-LOOK: " + cLook(requests, head));
+
+        scanner.close();
+    }
+}
