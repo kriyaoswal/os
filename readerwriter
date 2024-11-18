@@ -1,93 +1,94 @@
-#include <pthread.h>
 #include <stdio.h>
+#include <pthread.h>
 #include <unistd.h>
 
-pthread_mutex_t mutex;         // Mutex for synchronization of read_count
-pthread_mutex_t write_mutex;   // Mutex to control access to writing (one writer at a time)
-int read_count = 0;            // Number of active readers
+pthread_mutex_t lock;  // Mutex lock
+pthread_cond_t canRead;  // Condition for readers
+pthread_cond_t canWrite;  // Condition for writer
 
-// Reader function
-void *reader(void *arg) {
-    int reader_id = *((int *)arg);
-    for (int i = 0; i < 3; i++) {  // Perform reading 3 times
-        // Start Reading
-        pthread_mutex_lock(&mutex);
-        read_count++;
-        if (read_count == 1) {
-            pthread_mutex_lock(&write_mutex);  // Block writers if it's the first reader
-        }
-        pthread_mutex_unlock(&mutex);
+int readers = 0;  // Count of active readers
+int isWriting = 0;  // Flag to track if a writer is writing
 
-        // Reading (critical section)
-        printf("Reader %d is reading...\n", reader_id);
-        sleep(1);  // Simulate reading time
+// Reader thread function
+void* reader(void* arg) {
+    int readerId = *((int*)arg);
 
-        // Stop Reading
-        pthread_mutex_lock(&mutex);
-        read_count--;
-        if (read_count == 0) {
-            pthread_mutex_unlock(&write_mutex);  // Allow writers if no readers are left
-        }
-        pthread_mutex_unlock(&mutex);
-
-        printf("Reader %d has finished reading.\n", reader_id);
-        sleep(1);  // Simulate delay before reading again
+    pthread_mutex_lock(&lock);  // Acquire the lock
+    while (isWriting) {  // If a writer is writing, wait
+        pthread_cond_wait(&canRead, &lock);
     }
+    readers++;  // Increment the reader count
+    printf("Reader %d is reading.\n", readerId);
+    pthread_mutex_unlock(&lock);  // Release the lock
+
+    sleep(1);  // Simulate reading time
+
+    pthread_mutex_lock(&lock);  // Acquire the lock again to stop reading
+    readers--;  // Decrement the reader count
+    printf("Reader %d has finished reading.\n", readerId);
+    if (readers == 0) {
+        pthread_cond_signal(&canWrite);  // Signal the writer if no readers are left
+    }
+    pthread_mutex_unlock(&lock);  // Release the lock
+
     return NULL;
 }
 
-// Writer function
-void *writer(void *arg) {
-    int writer_id = *((int *)arg);
-    for (int i = 0; i < 3; i++) {  // Perform writing 3 times
-        // Start Writing
-        pthread_mutex_lock(&write_mutex);  // Lock the write_mutex to ensure only one writer at a time
+// Writer thread function
+void* writer(void* arg) {
+    int writerId = *((int*)arg);
 
-        // Writing (critical section)
-        printf("Writer %d is writing...\n", writer_id);
-        sleep(2);  // Simulate writing time
-
-        // Stop Writing
-        pthread_mutex_unlock(&write_mutex);
-        printf("Writer %d has finished writing.\n", writer_id);
-        sleep(1);  // Simulate delay before writing again
+    pthread_mutex_lock(&lock);  // Acquire the lock
+    while (isWriting || readers > 0) {  // Wait if readers or another writer is active
+        pthread_cond_wait(&canWrite, &lock);
     }
+    isWriting = 1;  // Mark that a writer is writing
+    printf("Writer %d is writing.\n", writerId);
+    pthread_mutex_unlock(&lock);  // Release the lock
+
+    sleep(2);  // Simulate writing time
+
+    pthread_mutex_lock(&lock);  // Acquire the lock again to stop writing
+    isWriting = 0;  // Mark that writing has stopped
+    printf("Writer %d has finished writing.\n", writerId);
+    pthread_cond_broadcast(&canRead);  // Signal all waiting readers
+    pthread_cond_signal(&canWrite);  // Signal the next writer if waiting
+    pthread_mutex_unlock(&lock);  // Release the lock
+
     return NULL;
 }
 
 int main() {
-    pthread_t readers[3], writers[2];
-    int reader_ids[3] = {1, 2, 3};
-    int writer_ids[2] = {1, 2};
+    pthread_t r1, r2, r3, w1, w2;
+    int readerId1 = 1, readerId2 = 2, readerId3 = 3;
+    int writerId1 = 1, writerId2 = 2;
 
-    // Initialize mutexes
-    pthread_mutex_init(&mutex, NULL);
-    pthread_mutex_init(&write_mutex, NULL);
+    // Initialize mutex and condition variables
+    pthread_mutex_init(&lock, NULL);
+    pthread_cond_init(&canRead, NULL);
+    pthread_cond_init(&canWrite, NULL);
 
-    // Create reader threads
-    for (int i = 0; i < 3; i++) {
-        pthread_create(&readers[i], NULL, reader, &reader_ids[i]);
-    }
+    // Create and start multiple reader and writer threads
+    pthread_create(&r1, NULL, reader, &readerId1);
+    pthread_create(&r2, NULL, reader, &readerId2);
+    pthread_create(&w1, NULL, writer, &writerId1);
+    pthread_create(&r3, NULL, reader, &readerId3);
+    pthread_create(&w2, NULL, writer, &writerId2);
 
-    // Create writer threads
-    for (int i = 0; i < 2; i++) {
-        pthread_create(&writers[i], NULL, writer, &writer_ids[i]);
-    }
+    // Join threads
+    pthread_join(r1, NULL);
+    pthread_join(r2, NULL);
+    pthread_join(w1, NULL);
+    pthread_join(r3, NULL);
+    pthread_join(w2, NULL);
 
-    // Wait for threads to finish
-    for (int i = 0; i < 3; i++) {
-        pthread_join(readers[i], NULL);
-    }
-    for (int i = 0; i < 2; i++) {
-        pthread_join(writers[i], NULL);
-    }
+    // Clean up mutex and condition variables
+    pthread_mutex_destroy(&lock);
+    pthread_cond_destroy(&canRead);
+    pthread_cond_destroy(&canWrite);
 
-    // Destroy mutexes
-    pthread_mutex_destroy(&mutex);
-    pthread_mutex_destroy(&write_mutex);
-
-    printf("All readers and writers have finished.\n");
     return 0;
 }
+
 
 
