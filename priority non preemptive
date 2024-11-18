@@ -1,0 +1,80 @@
+import java.util.Arrays;
+import java.util.Comparator;
+
+class Process {
+    int id;
+    int burstTime;
+    int priority;
+
+    public Process(int id, int burstTime, int priority) {
+        this.id = id;
+        this.burstTime = burstTime;
+        this.priority = priority;
+    }
+}
+
+public class PriorityScheduling {
+
+    // Function to find the waiting time for all processes
+    public static void findWaitingTime(Process[] proc, int n, int[] wt) {
+        wt[0] = 0; // First process has no waiting time
+        for (int i = 1; i < n; i++) {
+            wt[i] = proc[i - 1].burstTime + wt[i - 1]; // Add burst time of previous process
+        }
+    }
+
+    // Function to find the turnaround time for all processes
+    public static void findTurnAroundTime(Process[] proc, int n, int[] wt, int[] tat) {
+        for (int i = 0; i < n; i++) {
+            tat[i] = proc[i].burstTime + wt[i]; // Turnaround time = Burst time + Waiting time
+        }
+    }
+
+    // Function to calculate the average waiting time and turnaround time
+    public static void findAvgTime(Process[] proc, int n) {
+        int[] wt = new int[n];
+        int[] tat = new int[n];
+        int totalWt = 0, totalTat = 0;
+
+        findWaitingTime(proc, n, wt);
+        findTurnAroundTime(proc, n, wt, tat);
+
+        System.out.println("Processes " + " Burst time " + " Waiting time " + " Turn around time");
+
+        for (int i = 0; i < n; i++) {
+            totalWt += wt[i];
+            totalTat += tat[i];
+            System.out.println(" " + proc[i].id + "\t\t" + proc[i].burstTime + "\t " + wt[i] + "\t\t " + tat[i]);
+        }
+
+        System.out.println("Average waiting time = " + (float) totalWt / n);
+        System.out.println("Average turn around time = " + (float) totalTat / n);
+    }
+
+    // Comparator to sort processes based on priority (lower priority value means higher priority)
+    public static Comparator<Process> comparePriority = new Comparator<Process>() {
+        public int compare(Process p1, Process p2) {
+            return Integer.compare(p1.priority, p2.priority);
+        }
+    };
+
+    // Function to implement priority scheduling
+    public static void priorityScheduling(Process[] proc, int n) {
+        // Sort processes by priority
+        Arrays.sort(proc, comparePriority);
+
+        findAvgTime(proc, n);
+    }
+
+    public static void main(String[] args) {
+        Process[] proc = {
+            new Process(1, 10, 2),
+            new Process(2, 5, 0),
+            new Process(3, 8, 1)
+        };
+        
+        int n = proc.length;
+
+        priorityScheduling(proc, n);
+    }
+}
