@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
-pthread_mutex_t mutex;         // Mutex for synchronization
-pthread_mutex_t write_mutex;   // Mutex to control writing
+pthread_mutex_t mutex;         // Mutex for synchronization of read_count
+pthread_mutex_t write_mutex;   // Mutex to control access to writing (one writer at a time)
 int read_count = 0;            // Number of active readers
 
 // Reader function
@@ -41,7 +41,7 @@ void *writer(void *arg) {
     int writer_id = *((int *)arg);
     for (int i = 0; i < 3; i++) {  // Perform writing 3 times
         // Start Writing
-        pthread_mutex_lock(&write_mutex);
+        pthread_mutex_lock(&write_mutex);  // Lock the write_mutex to ensure only one writer at a time
 
         // Writing (critical section)
         printf("Writer %d is writing...\n", writer_id);
@@ -89,4 +89,5 @@ int main() {
     printf("All readers and writers have finished.\n");
     return 0;
 }
+
 
