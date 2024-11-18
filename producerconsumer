@@ -5,9 +5,11 @@
 #include <unistd.h>
 
 #define BUFFER_SIZE 10
+#define OPERATIONS 10  // Number of producer and consumer operations
 
 int buffer[BUFFER_SIZE];  // Shared buffer
 int in = 0, out = 0;      // Indexes for producer and consumer
+int count = 0;            // Shared counter to track operations
 
 // Semaphore and mutex
 sem_t empty, full;
@@ -16,6 +18,13 @@ pthread_mutex_t mutex;
 void* producer(void* arg) {
     int item;
     while (1) {
+        pthread_mutex_lock(&mutex);
+        if (count >= OPERATIONS) {  // Check if production limit is reached
+            pthread_mutex_unlock(&mutex);
+            break;
+        }
+        pthread_mutex_unlock(&mutex);
+
         item = rand() % 100;  // Produce an item
         sem_wait(&empty);     // Wait for an empty slot
         pthread_mutex_lock(&mutex);  // Lock the buffer
@@ -25,16 +34,25 @@ void* producer(void* arg) {
         printf("Producer produced: %d\n", item);
         in = (in + 1) % BUFFER_SIZE;
 
+        count++;  // Increment operation count
         pthread_mutex_unlock(&mutex);  // Unlock the buffer
         sem_post(&full);     // Signal that buffer has a full slot
 
         sleep(1);  // Simulate production time
     }
+    return NULL;
 }
 
 void* consumer(void* arg) {
     int item;
     while (1) {
+        pthread_mutex_lock(&mutex);
+        if (count >= OPERATIONS) {  // Check if consumption limit is reached
+            pthread_mutex_unlock(&mutex);
+            break;
+        }
+        pthread_mutex_unlock(&mutex);
+
         sem_wait(&full);  // Wait for a full slot
         pthread_mutex_lock(&mutex);  // Lock the buffer
 
@@ -48,6 +66,7 @@ void* consumer(void* arg) {
 
         sleep(1);  // Simulate consumption time
     }
+    return NULL;
 }
 
 int main() {
@@ -64,7 +83,7 @@ int main() {
     pthread_create(&prodThread, NULL, producer, NULL);
     pthread_create(&consThread, NULL, consumer, NULL);
 
-    // Join the threads (this will never happen in this example)
+    // Join the threads
     pthread_join(prodThread, NULL);
     pthread_join(consThread, NULL);
 
@@ -75,3 +94,4 @@ int main() {
 
     return 0;
 }
+
