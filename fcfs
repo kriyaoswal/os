@@ -1,0 +1,53 @@
+public class ProcessScheduling {
+
+    // Method to calculate waiting time
+    static void findWaitingTime(int[] processes, int n, int[] bt, int[] wt) {
+        wt[0] = 0;
+        for (int i = 1; i < n; i++) {
+            wt[i] = bt[i - 1] + wt[i - 1];
+        }
+    }
+
+    // Method to calculate turnaround time
+    static void findTurnAroundTime(int[] processes, int n, int[] bt, int[] wt, int[] tat) {
+        for (int i = 0; i < n; i++) {
+            tat[i] = bt[i] + wt[i];
+        }
+    }
+
+    // Method to calculate average times
+    static void findAvgTime(int[] processes, int n, int[] bt) {
+        int[] wt = new int[n];
+        int[] tat = new int[n];
+        int totalWt = 0, totalTat = 0;
+
+        // Calculate waiting time and turnaround time
+        findWaitingTime(processes, n, bt, wt);
+        findTurnAroundTime(processes, n, bt, wt, tat);
+
+        // Print the process details
+        System.out.println("Processes  Burst time  Waiting time  Turn around time");
+
+        for (int i = 0; i < n; i++) {
+            totalWt += wt[i];
+            totalTat += tat[i];
+            System.out.println(" " + (i + 1) + "\t\t" + bt[i] + "\t\t" + wt[i] + "\t\t" + tat[i]);
+        }
+
+        // Calculate and print average waiting time and turnaround time
+        System.out.println("Average waiting time = " + (float) totalWt / n);
+        System.out.println("Average turn around time = " + (float) totalTat / n);
+    }
+
+    public static void main(String[] args) {
+        // Process IDs
+        int[] processes = {1, 2, 3};
+        int n = processes.length;
+
+        // Burst times for processes
+        int[] burstTime = {10, 5, 8};
+
+        // Calculate and print the average times
+        findAvgTime(processes, n, burstTime);
+    }
+}
