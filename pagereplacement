@@ -1,0 +1,107 @@
+import java.util.*;
+
+public class PageReplacement {
+
+    // Function to calculate page faults using FIFO
+    public static int fifo(int[] referenceString, int frames) {
+        Queue<Integer> queue = new LinkedList<>();
+        Set<Integer> set = new HashSet<>();
+        int pageFaults = 0;
+
+        for (int page : referenceString) {
+            if (!set.contains(page)) {
+                pageFaults++;
+                if (queue.size() == frames) {
+                    int removedPage = queue.poll();
+                    set.remove(removedPage);
+                }
+                queue.add(page);
+                set.add(page);
+            }
+        }
+        return pageFaults;
+    }
+
+    // Function to calculate page faults using LRU
+    public static int lru(int[] referenceString, int frames) {
+        List<Integer> list = new ArrayList<>();
+        int pageFaults = 0;
+
+        for (int page : referenceString) {
+            if (!list.contains(page)) {
+                pageFaults++;
+                if (list.size() == frames) {
+                    list.remove(0); // Remove the least recently used page
+                }
+            } else {
+                list.remove((Integer) page); // Move the page to the most recently used
+            }
+            list.add(page);
+        }
+        return pageFaults;
+    }
+
+    // Function to calculate page faults using Optimal
+    public static int optimal(int[] referenceString, int frames) {
+        List<Integer> list = new ArrayList<>();
+        int pageFaults = 0;
+
+        for (int i = 0; i < referenceString.length; i++) {
+            int page = referenceString[i];
+            if (!list.contains(page)) {
+                pageFaults++;
+                if (list.size() == frames) {
+                    // Find the optimal page to replace
+                    int indexToReplace = findOptimalIndex(referenceString, list, i);
+                    list.set(indexToReplace, page);
+                } else {
+                    list.add(page);
+                }
+            }
+        }
+        return pageFaults;
+    }
+
+    // Helper function for Optimal page replacement
+    private static int findOptimalIndex(int[] referenceString, List<Integer> list, int currentIndex) {
+        int farthest = -1, indexToReplace = -1;
+        for (int i = 0; i < list.size(); i++) {
+            int page = list.get(i);
+            int nextUse = Integer.MAX_VALUE;
+            for (int j = currentIndex + 1; j < referenceString.length; j++) {
+                if (referenceString[j] == page) {
+                    nextUse = j;
+                    break;
+                }
+            }
+            if (nextUse > farthest) {
+                farthest = nextUse;
+                indexToReplace = i;
+            }
+        }
+        return indexToReplace;
+    }
+
+    // Main function
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.println("Enter the number of pages in the reference string:");
+        int n = scanner.nextInt();
+
+        System.out.println("Enter the reference string:");
+        int[] referenceString = new int[n];
+        for (int i = 0; i < n; i++) {
+            referenceString[i] = scanner.nextInt();
+        }
+
+        System.out.println("Enter the number of frames:");
+        int frames = scanner.nextInt();
+
+        System.out.println("Page faults using FIFO: " + fifo(referenceString, frames));
+        System.out.println("Page faults using LRU: " + lru(referenceString, frames));
+        System.out.println("Page faults using Optimal: " + optimal(referenceString, frames));
+
+        scanner.close();
+    }
+}
